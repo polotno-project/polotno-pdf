@@ -1,6 +1,6 @@
 {
   "name": "polotno-pdf",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "Convert Polotno JSON into PDF",
   "module": "index.js",
   "scripts": {
@@ -9,6 +9,9 @@
   "type": "module",
   "author": "",
   "license": "ISC",
+  "files": [
+    "index.js"
+  ],
   "dependencies": {
     "canvas": "^2.7.0",
     "get-urls": "^10.0.0",
