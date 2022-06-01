@@ -4,6 +4,23 @@ import fetch from 'node-fetch';
 import parseColor from 'parse-color';
 import getUrls from 'get-urls';
 import Canvas from 'canvas';
+import * as svg from './svg.js';
+import xmldom from 'xmldom';
+
+global.DOMParser = xmldom.DOMParser;
+global.XMLSerializer = xmldom.XMLSerializer;
+
+global.fetch = (url) => {
+  if (url.indexOf('base64') >= 0) {
+    return {
+      text: async () => {
+        let buff = Buffer.from(url.split('base64,')[1], 'base64');
+        return buff.toString('ascii');
+      },
+    };
+  }
+  return fetch(url);
+};
 
 const DPI = 75;
 function pxToPt(px) {
@@ -18,11 +35,8 @@ async function getGoogleFontPath(fontFamily) {
   return urls.values().next().value;
 }
 
-async function cropImage(element) {
-  // if (element.src.length >= 300) {
-  //   return '';
-  // }
-  const image = await Canvas.loadImage(element.src);
+async function cropImage(src, element) {
+  const image = await Canvas.loadImage(src);
   const canvas = new Canvas.Canvas();
 
   canvas.width = element.width;
@@ -65,7 +79,7 @@ async function cropImage(element) {
     canvas.height
   );
 
-  return canvas.toDataURL();
+  return canvas.toDataURL('image/png');
 }
 
 async function srcToBase64(src) {
@@ -86,6 +100,7 @@ export async function jsonToPDF(json, pdfFileName) {
 
   var doc = new PDFDocument({
     size: [json.width, json.height],
+    autoFirstPage: false,
   });
 
   // Stream contents to a file
@@ -98,8 +113,19 @@ export async function jsonToPDF(json, pdfFileName) {
   }
 
   for (const page of json.pages) {
+    doc.addPage();
     if (page.background) {
-      doc.image(await srcToBuffer(page.background), 0, 0);
+      const isURL =
+        page.background.indexOf('http') >= 0 ||
+        page.background.indexOf('.png') >= 0 ||
+        page.background.indexOf('.jpg') >= 0;
+
+      if (isURL) {
+        doc.image(await srcToBuffer(page.background), 0, 0);
+      } else {
+        doc.rect(0, 0, json.width, json.height);
+        doc.fill(parseColor(page.background).hex);
+      }
     }
     for (const child of page.children) {
       doc.save();
@@ -123,17 +149,26 @@ export async function jsonToPDF(json, pdfFileName) {
         doc.fontSize(child.fontSize);
         // console.log(child.fill);
         doc.fillColor(parseColor(child.fill).hex);
-        doc.text(child.text, 0, 0, {
+        doc.text(child.text, 0, -child.fontSize * 0.2, {
           align: child.align,
           fill: child.fill,
-          // baseline: 'top',
+          baseline: 'top',
           // angle: child.rotation,
-          width: child.width,
+          lineGap: -0.5 * child.fontSize,
+          width: child.width + 2,
           underline: child.textDecoration.indexOf('underline') >= 0,
         });
       }
       if (child.type === 'image' || child.type === 'svg') {
-        const cropped = await cropImage(child);
+        let src = child.src;
+        if (child.type === 'svg') {
+          const svgStr = await svg.urlToString(child.src);
+          src = svg.replaceColors(
+            svgStr,
+            new Map(Object.entries(child.colorsReplace))
+          );
+        }
+        const cropped = await cropImage(src, child);
         if (cropped) {
           doc.image(await srcToBuffer(cropped), 0, 0, {
             width: child.width,

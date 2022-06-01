@@ -2,20 +2,23 @@
   "name": "polotno-pdf",
   "version": "0.1.1",
   "description": "Convert Polotno JSON into PDF",
-  "module": "index.js",
+  "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "type": "module",
   "author": "Anton Lavrenov",
   "files": [
     "index.js"
   ],
   "dependencies": {
-    "canvas": "^2.7.0",
-    "get-urls": "^10.0.0",
-    "node-fetch": "^2.6.1",
+    "canvas": "^2.8.0",
+    "get-urls": "^10.0.1",
+    "konva": "^8.3.3",
+    "node-fetch": "^2.6.7",
     "parse-color": "^1.0.0",
-    "pdfkit": "^0.12.1"
+    "pdfcrowd": "^5.4.0",
+    "pdfkit": "^0.13.0",
+    "puppeteer": "^13.4.0",
+    "xmldom": "^0.6.0"
   }
 }
