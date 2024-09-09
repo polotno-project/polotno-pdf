@@ -1,4 +1,4 @@
-const Konva = require('konva/cmj').default;
+const Konva = require('konva');
 var fetch = require('node-fetch');
 
 function isInsideDef(element) {

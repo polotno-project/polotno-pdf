@@ -1,24 +1,25 @@
 {
-  "name": "polotno-pdf",
+  "name": "@polotno/to-vector-pdf",
   "version": "0.1.1",
-  "description": "Convert Polotno JSON into PDF",
+  "description": "Convert Polotno JSON into vector PDF",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Anton Lavrenov",
   "files": [
-    "index.js"
+    "index.js",
+    "README.md",
+    "svg.js"
   ],
   "dependencies": {
-    "canvas": "^2.8.0",
+    "canvas": "^2.11.2",
     "get-urls": "^10.0.1",
-    "konva": "^8.3.3",
+    "konva": "^9.3.14",
     "node-fetch": "^2.6.7",
     "parse-color": "^1.0.0",
-    "pdfcrowd": "^5.4.0",
-    "pdfkit": "^0.13.0",
-    "puppeteer": "^13.4.0",
+    "pdfkit": "^0.15.0",
+    "svg-to-pdfkit": "^0.1.8",
     "xmldom": "^0.6.0"
   }
 }

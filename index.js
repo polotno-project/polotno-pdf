@@ -1,11 +1,15 @@
-import PDFDocument from 'pdfkit';
-import fs from 'fs';
-import fetch from 'node-fetch';
-import parseColor from 'parse-color';
-import getUrls from 'get-urls';
-import Canvas from 'canvas';
-import * as svg from './svg.js';
-import xmldom from 'xmldom';
+const PDFDocument = require('pdfkit');
+const fs = require('fs');
+const fetch = require('node-fetch');
+const parseColor = require('parse-color');
+const getUrls = require('get-urls');
+const Canvas = require('canvas');
+const svg = require('./svg.js');
+const SVGtoPDF = require('svg-to-pdfkit');
+PDFDocument.prototype.addSVG = function (svg, x, y, options) {
+  return SVGtoPDF(this, svg, x, y, options), this;
+};
+const xmldom = require('xmldom');
 
 global.DOMParser = xmldom.DOMParser;
 global.XMLSerializer = xmldom.XMLSerializer;
@@ -35,12 +39,14 @@ async function getGoogleFontPath(fontFamily) {
   return urls.values().next().value;
 }
 
+const PIXEL_RATIO = 2;
+
 async function cropImage(src, element) {
   const image = await Canvas.loadImage(src);
   const canvas = new Canvas.Canvas();
 
-  canvas.width = element.width;
-  canvas.height = element.height;
+  canvas.width = element.width * PIXEL_RATIO;
+  canvas.height = element.height * PIXEL_RATIO;
 
   const ctx = canvas.getContext('2d');
 
@@ -95,7 +101,7 @@ async function srcToBuffer(src) {
   return Buffer.from(await srcToBase64(src), 'base64');
 }
 
-export async function jsonToPDF(json, pdfFileName) {
+module.exports.jsonToPDF = async function jsonToPDF(json, pdfFileName) {
   const fonts = {};
 
   var doc = new PDFDocument({
@@ -149,32 +155,42 @@ export async function jsonToPDF(json, pdfFileName) {
         doc.fontSize(child.fontSize);
         // console.log(child.fill);
         doc.fillColor(parseColor(child.fill).hex);
-        doc.text(child.text, 0, -child.fontSize * 0.2, {
+        doc.text(child.text, 0, 0, {
           align: child.align,
           fill: child.fill,
           baseline: 'top',
-          // angle: child.rotation,
-          lineGap: -0.5 * child.fontSize,
+          lineGap: (child.lineHeight - 1) * child.fontSize,
           width: child.width + 2,
           underline: child.textDecoration.indexOf('underline') >= 0,
         });
       }
-      if (child.type === 'image' || child.type === 'svg') {
-        let src = child.src;
-        if (child.type === 'svg') {
-          const svgStr = await svg.urlToString(child.src);
-          src = svg.replaceColors(
-            svgStr,
-            new Map(Object.entries(child.colorsReplace))
-          );
-        }
-        const cropped = await cropImage(src, child);
-        if (cropped) {
-          doc.image(await srcToBuffer(cropped), 0, 0, {
+      if (child.type === 'line') {
+        doc.lineWidth(child.height);
+        doc.moveTo(0, 0);
+        doc.lineTo(child.width, 0);
+        doc.stroke();
+      }
+      if (child.type === 'image') {
+        let src = await cropImage(child.src, child);
+        if (src) {
+          doc.image(await srcToBuffer(src), 0, 0, {
             width: child.width,
             height: child.height,
           });
         }
+      }
+      if (child.type === 'svg') {
+        const svgStr = await svg.urlToString(child.src);
+        src = svg.replaceColors(
+          svgStr,
+          new Map(Object.entries(child.colorsReplace))
+        );
+        const str = await svg.urlToString(src);
+        doc.addSVG(str, 0, 0, {
+          preserveAspectRatio: 'xMinYMin meet',
+          width: child.width,
+          height: child.height,
+        });
       }
       doc.restore();
     }
@@ -182,4 +198,4 @@ export async function jsonToPDF(json, pdfFileName) {
 
   // Close PDF and write file.
   doc.end();
-}
+};

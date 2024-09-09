@@ -1,6 +1,6 @@
-import fs from 'fs';
-import { jsonToPDF } from './index.js';
-import path from 'path';
+const fs = require('fs');
+const { jsonToPDF } = require('./index.js');
+const path = require('path');
 
 const folder = './test-files-2';
 async function run() {
